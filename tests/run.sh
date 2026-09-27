@@ -3,8 +3,9 @@
 # Each test case runs in a fresh temp directory with stub gh, tailscale and
 # crucible executables first on PATH.
 #
-# shellcheck disable=SC2329 # every test_* and helper function below is
-#   invoked indirectly, by name, from the dispatch loop in main().
+# shellcheck disable=SC2317,SC2329 # every test_* and helper function below
+#   is invoked indirectly, by name, from the dispatch loop in main(); SC2317
+#   is how older releases of the linter report that, SC2329 newer ones.
 # shellcheck disable=SC2030,SC2031 # each run_* helper exports inputs into a
 #   subshell on purpose, to isolate one test case's environment from the next.
 set -euo pipefail
