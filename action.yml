@@ -4,7 +4,7 @@ author: jaisonerick
 
 inputs:
   tag:
-    description: Image tag passed to crucible deploy, usually ${{ github.sha }}
+    description: Image tag passed to crucible deploy, usually the commit SHA (github.sha)
     required: true
   crucible-token:
     description: Token that can read jaisonerick/crucible releases

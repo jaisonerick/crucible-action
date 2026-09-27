@@ -505,6 +505,19 @@ EOF
   assert_contains "$(cat "$dir/stderr")" "tag:ci-" "deploy: tailscale ip failure names the policy hint"
 }
 
+### action.yml metadata ###############################################
+
+test_action_metadata_has_expressions_only_in_defaults_and_runs() {
+  local file="$ROOT_DIR/action.yml"
+  local runs_line
+  runs_line=$(grep -n '^runs:' "$file" | head -1 | cut -d: -f1)
+  local bad
+  bad=$(awk -v limit="$runs_line" \
+    'NR < limit && /\$\{\{/ && $0 !~ /^[[:space:]]*default:/ { print NR": "$0 }' \
+    "$file")
+  assert_eq "$bad" "" "action.yml: expressions above runs: only in default: lines"
+}
+
 ### main ###############################################################
 
 main() {
