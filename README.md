@@ -26,8 +26,11 @@ crucible project grant example tag:ci-example
 - Creates the tag `tag:ci-<project>` and a grant from it to the machine, on `tcp:7080`.
 - Creates a Tailscale federated identity for the project's repository, scoped to `auth_keys`:
   - Issuer: `https://token.actions.githubusercontent.com`
-  - Subject: `repo:<owner>/<repo>:ref:refs/heads/main`
+  - Subject: the repository's OIDC subject prefix followed by `:ref:refs/heads/main`
   - Tags: `tag:ci-<project>`
+
+`gh api repos/<owner>/<repo>/actions/oidc/customization/sub --jq .sub_claim_prefix` reads a repository's OIDC subject prefix.
+A repository with immutable subjects carries the owner and repository IDs in that prefix, for example `repo:octo-org@1234/app@5678:ref:refs/heads/main`.
 
 A job that declares an `environment:` gets a different OIDC subject (it includes the environment name), so the subject pattern above only matches a job with no `environment:` key, running on `main`.
 
@@ -91,6 +94,10 @@ This action declares no outputs.
 ## Behaviour
 
 The job fails when the deploy fails, and the failure message names the deploy number and the reason reported by the machine. Cancelling the job does not cancel the deploy: it keeps running on the machine, and `crucible status <project>` shows how it ends. The ephemeral tailnet node is removed at the end of the job, whether the job succeeds or fails. The registry token is the job's own `GITHUB_TOKEN` (or whatever the caller passes in `registry-token`): it lives only as long as the job, and the machine keeps no registry login after the deploy finishes.
+
+## Troubleshooting
+
+A `403` from the token exchange at the tailnet join means the identity token's subject or audience does not match the federated identity.
 
 ## Security notes
 
