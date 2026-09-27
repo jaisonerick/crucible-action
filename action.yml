@@ -1,0 +1,97 @@
+name: crucible deploy
+description: Deploy a project to a crucible machine over a Tailscale tailnet
+author: jaisonerick
+
+inputs:
+  tag:
+    description: Image tag passed to crucible deploy, usually ${{ github.sha }}
+    required: true
+  crucible-token:
+    description: Token that can read jaisonerick/crucible releases
+    required: true
+  tailscale-client-id:
+    description: Federated identity or OAuth client ID for Tailscale
+    required: true
+  tailscale-audience:
+    description: Federated identity audience, for workload identity federation
+    required: false
+    default: ''
+  tailscale-oauth-secret:
+    description: OAuth client secret, the alternative to workload identity federation
+    required: false
+    default: ''
+  project:
+    description: 'Project name; when empty, read from the project: key of the project file'
+    required: false
+    default: ''
+  file:
+    description: Project file read by crucible deploy
+    required: false
+    default: crucible.yml
+  machine:
+    description: The machine's tailnet short name
+    required: false
+    default: crucible
+  crucible-version:
+    description: 'crucible release to download: latest, 0.8.0 or v0.8.0'
+    required: false
+    default: latest
+  registry:
+    description: Registry the registry token authenticates to
+    required: false
+    default: ghcr.io
+  registry-user:
+    description: Registry username
+    required: false
+    default: ${{ github.actor }}
+  registry-token:
+    description: Registry token passed to the machine for this deploy; empty means images are public
+    required: false
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve project and release
+      id: resolve
+      shell: bash
+      env:
+        CRUCIBLE_TOKEN: ${{ inputs.crucible-token }}
+        REGISTRY_TOKEN: ${{ inputs.registry-token }}
+        TAILSCALE_AUDIENCE: ${{ inputs.tailscale-audience }}
+        TAILSCALE_OAUTH_SECRET: ${{ inputs.tailscale-oauth-secret }}
+        PROJECT: ${{ inputs.project }}
+        FILE: ${{ inputs.file }}
+        CRUCIBLE_VERSION: ${{ inputs.crucible-version }}
+      run: "\"$GITHUB_ACTION_PATH/scripts/resolve.sh\""
+
+    - name: Download crucible
+      id: download
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.crucible-token }}
+        ASSET: ${{ steps.resolve.outputs.asset }}
+        RELEASE: ${{ steps.resolve.outputs.release }}
+      run: "\"$GITHUB_ACTION_PATH/scripts/download.sh\""
+
+    - name: Join tailnet
+      uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd  # v4.2.0
+      with:
+        oauth-client-id: ${{ inputs.tailscale-client-id }}
+        oauth-secret: ${{ inputs.tailscale-oauth-secret }}
+        audience: ${{ inputs.tailscale-audience }}
+        tags: ${{ steps.resolve.outputs.tailscale-tag }}
+        ping: ${{ inputs.machine }}
+
+    - name: Deploy
+      shell: bash
+      env:
+        CRUCIBLE: ${{ steps.download.outputs.crucible-path }}
+        MACHINE: ${{ inputs.machine }}
+        FILE: ${{ inputs.file }}
+        TAG: ${{ inputs.tag }}
+        PROJECT: ${{ steps.resolve.outputs.project }}
+        REGISTRY: ${{ inputs.registry }}
+        REGISTRY_USER: ${{ inputs.registry-user }}
+        REGISTRY_TOKEN: ${{ inputs.registry-token }}
+      run: "\"$GITHUB_ACTION_PATH/scripts/deploy.sh\""
