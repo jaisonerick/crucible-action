@@ -13,6 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: jdx/mise-action@v4
+
       - name: shellcheck
         run: shellcheck scripts/*.sh tests/*.sh
 
@@ -20,4 +22,4 @@ jobs:
         run: bash tests/run.sh
 
       - name: actionlint
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+        run: actionlint

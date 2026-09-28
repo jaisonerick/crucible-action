@@ -1,0 +1,14 @@
+[tools]
+shellcheck = "0.11.0"
+actionlint = "1.7.12"
+
+[tasks.lint]
+description = "shellcheck the scripts and actionlint the workflows"
+run = """
+shellcheck scripts/*.sh tests/*.sh
+actionlint
+"""
+
+[tasks.test]
+description = "Run the dependency-free script test suite"
+run = "bash tests/run.sh"
